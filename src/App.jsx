@@ -48,7 +48,7 @@ const QUESTIONS = [
   { q: "What's the most useful thing you've learned at university so far?", cat: '🎓 Campus' },
   { q: 'If you could add one course to the curriculum, what would it be?', cat: '🎓 Campus' },
   { q: "What's your go-to stress relief during exam season?", cat: '🎓 Campus' },
-  { q: "What's the best thing about being at CMKL?", cat: '🎓 Campus' },
+  { q: "What's the best thing about AI Ascend?", cat: '🎓 Campus' },
   { q: 'Share one thing nobody here knows about you.', cat: '🤝 Team' },
   { q: "What's your hidden talent?", cat: '🤝 Team' },
   { q: 'Describe yourself in one emoji and explain why.', cat: '🤝 Team' },
@@ -70,9 +70,9 @@ function AnimatedBg() {
   )
 }
 
-function GlassCard({ children, className = '' }) {
+function GlassCard({ children, className = '', ...rest }) {
   return (
-    <div className={`rounded-2xl border border-white/[0.06] bg-white/[0.04] backdrop-blur-xl p-5 ${className}`}>
+    <div {...rest} className={`rounded-2xl border border-white/[0.06] bg-white/[0.04] backdrop-blur-xl p-5 ${className}`}>
       {children}
     </div>
   )
@@ -100,7 +100,7 @@ function Logo({ size = 'md' }) {
   return (
     <div className="flex flex-col items-center gap-1.5">
       <div className={`font-black tracking-tight ${s[size]}`}>
-        <span className="text-white">CMKL </span>
+        <span className="text-white">AI Ascend </span>
         <span className="bg-gradient-to-r from-cyan-400 to-purple-400 bg-clip-text text-transparent">Event Helper</span>
       </div>
       <div className="h-0.5 w-16 bg-gradient-to-r from-cyan-400 to-purple-400 rounded-full" />

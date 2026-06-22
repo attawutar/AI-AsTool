@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: cmkl-event-helper
+    name: ai-ascend-event-helper
     runtime: node
     plan: free
     buildCommand: npm install && npm run build
