@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import { PDFDocument, rgb, StandardFonts, degrees } from 'pdf-lib'
+import heic2any from 'heic2any'
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const readAB = f => new Promise((res,rej) => { const r=new FileReader(); r.onload=e=>res(e.target.result); r.onerror=rej; r.readAsArrayBuffer(f) })
@@ -638,6 +639,93 @@ function ScanDocument({onBack}){
   )
 }
 
+// ─── 15. HEIC to JPG ─────────────────────────────────────────────────────────
+function HeicToJpg({onBack}){
+  const [files,setFiles]=useState([])
+  const [results,setResults]=useState([])
+  const [busy,setBusy]=useState(false)
+  const [status,setStatus]=useState('')
+  const convert=async()=>{
+    if(!files.length)return;setBusy(true);setStatus('');setResults([])
+    const out=[]
+    for(const f of files){
+      setStatus(`Converting ${f.name}…`)
+      try{
+        const raw=await heic2any({blob:f,toType:'image/jpeg',quality:0.92})
+        const blob=Array.isArray(raw)?raw[0]:raw
+        out.push({name:f.name.replace(/\.heic$/i,'.jpg'),blob,orig:f.size,comp:blob.size})
+      }catch(e){out.push({name:f.name,error:e.message})}
+    }
+    setResults(out);setStatus(`✓ Converted ${out.filter(r=>!r.error).length} of ${files.length} file(s)!`);setBusy(false)
+  }
+  const dl=r=>dlBlob(r.blob,r.name)
+  const dlAll=()=>results.filter(r=>!r.error).forEach((r,i)=>setTimeout(()=>dl(r),i*200))
+  return(
+    <div className="min-h-screen flex flex-col items-center py-10 px-4"><Bg/>
+      <div className="w-full max-w-md">
+        <Back onBack={onBack}/>
+        <h1 className="text-white font-black text-2xl mb-6">🍎 HEIC → JPG</h1>
+        <p className="text-white/40 text-xs mb-4">Converts iPhone HEIC photos to standard JPG format.</p>
+        <Drop accept=".heic,.heif,image/heic,image/heif" multiple icon="📷" label="Upload HEIC / HEIF photos" onFiles={fs=>setFiles(p=>[...p,...fs])}/>
+        {files.length>0&&<div className="mt-3 space-y-1 mb-4">{files.map((f,i)=><div key={i} className="flex items-center gap-2 text-sm"><span className="text-white/70 flex-1 truncate">{f.name}</span><span className="text-white/30">{fmtSize(f.size)}</span><button onClick={()=>setFiles(f=>f.filter((_,j)=>j!==i))} className="text-white/30 hover:text-red-400">×</button></div>)}</div>}
+        {results.length>0&&<div className="mb-3 space-y-1">{results.map((r,i)=>(
+          <div key={i} className={`flex items-center gap-2 text-xs p-2 rounded-lg ${r.error?'bg-red-500/10 text-red-400':'bg-emerald-500/10 text-emerald-400'}`}>
+            <span className="flex-1 truncate">{r.name}</span>
+            {r.error?<span>Error: {r.error}</span>:<><span>{fmtSize(r.comp)}</span><button onClick={()=>dl(r)} className="underline">Save</button></>}
+          </div>
+        ))}</div>}
+        <StatusMsg status={status}/>
+        {files.length>0&&!results.length&&<Btn onClick={convert} disabled={busy} className="w-full mt-3">{busy?<Spin/>:`Convert ${files.length} file(s)`}</Btn>}
+        {results.length>0&&<Btn onClick={dlAll} className="w-full mt-3">⬇ Download All JPGs</Btn>}
+      </div>
+    </div>
+  )
+}
+
+// ─── 16. Remove Background ───────────────────────────────────────────────────
+function RemoveBg({onBack}){
+  const [file,setFile]=useState(null)
+  const [preview,setPreview]=useState(null)
+  const [resultBlob,setResultBlob]=useState(null)
+  const [busy,setBusy]=useState(false)
+  const [status,setStatus]=useState('')
+  const load=([f])=>{setFile(f);setResultBlob(null);setStatus('');const u=URL.createObjectURL(f);setPreview(u)}
+  const process=async()=>{
+    if(!file)return;setBusy(true);setStatus('Loading AI model… (first run may take ~30s)')
+    try{
+      const {removeBackground}=await import('@imgly/background-removal')
+      setStatus('Removing background…')
+      const blob=await removeBackground(file,{output:{format:'image/png',quality:0.9}})
+      setResultBlob(blob);setStatus('✓ Background removed!')
+    }catch(e){setStatus('Error: '+e.message)}
+    setBusy(false)
+  }
+  const dl=()=>{if(resultBlob)dlBlob(resultBlob,file.name.replace(/\.[^.]+$/,'-nobg.png'))}
+  return(
+    <div className="min-h-screen flex flex-col items-center py-10 px-4"><Bg/>
+      <div className="w-full max-w-md">
+        <Back onBack={onBack}/>
+        <h1 className="text-white font-black text-2xl mb-2">✂️ Remove Background</h1>
+        <p className="text-white/40 text-xs mb-4">AI-powered, runs entirely in your browser. Outputs transparent PNG.</p>
+        {!file?<Drop accept="image/*" icon="🖼️" label="Upload image (JPG, PNG, WebP…)" onFiles={load}/>:<>
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div><p className="text-white/30 text-xs mb-1 text-center">Original</p><img src={preview} className="w-full rounded-xl border border-white/10"/></div>
+            <div><p className="text-white/30 text-xs mb-1 text-center">Result</p>
+              {resultBlob
+                ?<img src={URL.createObjectURL(resultBlob)} className="w-full rounded-xl border border-white/10" style={{background:'repeating-conic-gradient(#aaa 0% 25%,#eee 0% 50%) 0 0/16px 16px'}}/>
+                :<div className="w-full rounded-xl border border-white/10 bg-white/[0.03] aspect-square flex items-center justify-center text-white/20 text-sm">Preview</div>}
+            </div>
+          </div>
+          <Btn v="secondary" onClick={()=>{setFile(null);setPreview(null);setResultBlob(null);setStatus('')}} className="w-full mb-2" size="sm">Choose Different Image</Btn>
+        </>}
+        <StatusMsg status={status}/>
+        {file&&!resultBlob&&<Btn onClick={process} disabled={busy} className="w-full mt-3">{busy?<Spin/>:'Remove Background'}</Btn>}
+        {resultBlob&&<Btn onClick={dl} v="success" className="w-full mt-3">⬇ Download PNG</Btn>}
+      </div>
+    </div>
+  )
+}
+
 // ─── PDF Tools Hub ────────────────────────────────────────────────────────────
 const TOOLS = [
   { id:'merge',         icon:'📎', label:'Merge PDFs',       sub:'Combine multiple files',   comp:MergePDF },
@@ -654,6 +742,8 @@ const TOOLS = [
   { id:'sign',          icon:'✍️', label:'Sign PDF',         sub:'Draw & embed signature',   comp:SignPDF },
   { id:'form',          icon:'📝', label:'Fill Form',        sub:'Fill PDF form fields',     comp:FillForm },
   { id:'scan',          icon:'📱', label:'Scan Document',    sub:'Camera to PDF',            comp:ScanDocument },
+  { id:'heic-to-jpg',  icon:'🍎', label:'HEIC → JPG',       sub:'Convert iPhone photos',    comp:HeicToJpg },
+  { id:'remove-bg',    icon:'✂️', label:'Remove Background', sub:'AI transparent PNG',       comp:RemoveBg },
 ]
 
 export default function PDFToolsScreen({ onBack }) {
