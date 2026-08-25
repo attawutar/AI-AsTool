@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { io } from 'socket.io-client'
+import PDFToolsScreen from './PDFTools'
 
 // ─── Socket singleton ─────────────────────────────────────────────────────────
 let _socket = null
@@ -181,6 +182,13 @@ function WelcomeScreen({ onSelect }) {
         { id: 'timer',       icon: '⏱️', label: 'Countdown Timer',  sub: 'Projector-ready',     color: 'from-emerald-500 to-teal-600' },
         { id: 'seating',     icon: '🪑', label: 'Seating Planner',  sub: 'Table assignments',   color: 'from-lime-500 to-green-600' },
         { id: 'qr-generator',icon: '🔗', label: 'QR Generator',     sub: 'Instant QR codes',    color: 'from-slate-500 to-gray-600' },
+      ]
+    },
+    {
+      label: '📄 PDF Tools',
+      desc: 'Edit, convert and manage PDFs — all in-browser',
+      cards: [
+        { id: 'pdf-tools', icon: '📄', label: 'PDF Tools', sub: '14 tools in one place', color: 'from-orange-500 to-red-600' },
       ]
     },
   ]
@@ -1380,6 +1388,7 @@ export default function App() {
       {screen==='seating'      && <SeatingScreen onBack={back} />}
       {screen==='lucky-draw'   && <LuckyDrawScreen onBack={back} />}
       {screen==='qr-generator' && <QRGeneratorScreen onBack={back} />}
+      {screen==='pdf-tools'    && <PDFToolsScreen onBack={back} />}
     </div>
   )
 }
