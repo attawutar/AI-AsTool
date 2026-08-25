@@ -154,36 +154,65 @@ function EmojiParticles({ emojis = ['🎉','⭐','🎊','✨'] }) {
 
 // ─── WelcomeScreen ────────────────────────────────────────────────────────────
 function WelcomeScreen({ onSelect }) {
-  const cards = [
-    { id: 'host',          icon: '🎯', label: 'Group Randomizer', sub: 'Host a session',      color: 'from-cyan-500 to-blue-600' },
-    { id: 'participant',   icon: '👥', label: 'Group Randomizer', sub: 'Join as participant',  color: 'from-blue-500 to-indigo-600' },
-    { id: 'poll',          icon: '🗳️', label: 'Live Poll',        sub: 'Real-time voting',     color: 'from-violet-500 to-purple-600' },
-    { id: 'scoreboard',    icon: '🏆', label: 'Team Scoreboard',  sub: 'Live leaderboard',     color: 'from-amber-500 to-orange-600' },
-    { id: 'timer',         icon: '⏱️', label: 'Countdown Timer',  sub: 'Projector-ready',      color: 'from-emerald-500 to-teal-600' },
-    { id: 'lucky-draw',    icon: '🎰', label: 'Lucky Draw',       sub: 'Prize raffle',         color: 'from-pink-500 to-rose-600' },
-    { id: 'spin-wheel',    icon: '🎡', label: 'Spin the Wheel',   sub: 'Random selection',     color: 'from-fuchsia-500 to-pink-600' },
-    { id: 'icebreaker',    icon: '🧊', label: 'Icebreaker',       sub: 'Random questions',     color: 'from-sky-500 to-cyan-600' },
-    { id: 'seating',       icon: '🪑', label: 'Seating Planner',  sub: 'Table assignments',    color: 'from-lime-500 to-green-600' },
-    { id: 'qr-generator',  icon: '🔗', label: 'QR Generator',     sub: 'Instant QR codes',     color: 'from-slate-500 to-gray-600' },
+  const groups = [
+    {
+      label: '🌐 Real-time',
+      desc: 'Multi-device — everyone joins on their phone',
+      cards: [
+        { id: 'host',        icon: '🎯', label: 'Group Randomizer', sub: 'Host a session',     color: 'from-cyan-500 to-blue-600' },
+        { id: 'participant', icon: '👥', label: 'Group Randomizer', sub: 'Join as participant', color: 'from-blue-500 to-indigo-600' },
+        { id: 'poll',        icon: '🗳️', label: 'Live Poll',        sub: 'Real-time voting',    color: 'from-violet-500 to-purple-600' },
+        { id: 'scoreboard',  icon: '🏆', label: 'Team Scoreboard',  sub: 'Live leaderboard',    color: 'from-amber-500 to-orange-600' },
+      ]
+    },
+    {
+      label: '🎪 Event Activities',
+      desc: 'Fun tools for on-stage or group sessions',
+      cards: [
+        { id: 'lucky-draw',  icon: '🎰', label: 'Lucky Draw',       sub: 'Prize raffle',        color: 'from-pink-500 to-rose-600' },
+        { id: 'spin-wheel',  icon: '🎡', label: 'Spin the Wheel',   sub: 'Random selection',    color: 'from-fuchsia-500 to-pink-600' },
+        { id: 'icebreaker',  icon: '🧊', label: 'Icebreaker',       sub: 'Random questions',    color: 'from-sky-500 to-cyan-600' },
+      ]
+    },
+    {
+      label: '🛠️ Organiser Tools',
+      desc: 'Preparation and presentation tools',
+      cards: [
+        { id: 'timer',       icon: '⏱️', label: 'Countdown Timer',  sub: 'Projector-ready',     color: 'from-emerald-500 to-teal-600' },
+        { id: 'seating',     icon: '🪑', label: 'Seating Planner',  sub: 'Table assignments',   color: 'from-lime-500 to-green-600' },
+        { id: 'qr-generator',icon: '🔗', label: 'QR Generator',     sub: 'Instant QR codes',    color: 'from-slate-500 to-gray-600' },
+      ]
+    },
   ]
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-start py-10 px-4">
       <AnimatedBg />
       <Logo size="lg" />
       <p className="text-white/40 text-sm mt-3 mb-8">Your all-in-one event toolkit</p>
-      <div className="w-full max-w-2xl grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {cards.map(c => (
-          <button key={c.id} onClick={() => onSelect(c.id)}
-            className="group flex items-center gap-4 p-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.12] transition-all duration-200 text-left">
-            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${c.color} flex items-center justify-center text-2xl flex-shrink-0 shadow-lg`}>
-              {c.icon}
+      <div className="w-full max-w-2xl space-y-6">
+        {groups.map(g => (
+          <div key={g.label}>
+            <div className="mb-3">
+              <p className="text-white font-bold text-sm">{g.label}</p>
+              <p className="text-white/30 text-xs">{g.desc}</p>
             </div>
-            <div>
-              <div className="text-white font-semibold text-sm">{c.label}</div>
-              <div className="text-white/40 text-xs">{c.sub}</div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {g.cards.map(c => (
+                <button key={c.id} onClick={() => onSelect(c.id)}
+                  className="group flex items-center gap-4 p-4 rounded-2xl border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.07] hover:border-white/[0.12] transition-all duration-200 text-left">
+                  <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${c.color} flex items-center justify-center text-xl flex-shrink-0 shadow-lg`}>
+                    {c.icon}
+                  </div>
+                  <div>
+                    <div className="text-white font-semibold text-sm">{c.label}</div>
+                    <div className="text-white/40 text-xs">{c.sub}</div>
+                  </div>
+                  <div className="ml-auto text-white/20 group-hover:text-white/50 transition-colors text-lg">›</div>
+                </button>
+              ))}
             </div>
-            <div className="ml-auto text-white/20 group-hover:text-white/50 transition-colors text-lg">›</div>
-          </button>
+          </div>
         ))}
       </div>
     </div>
