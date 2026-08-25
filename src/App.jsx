@@ -188,7 +188,7 @@ function WelcomeScreen({ onSelect }) {
       label: '📄 PDF Tools',
       desc: 'Edit, convert and manage PDFs — all in-browser',
       cards: [
-        { id: 'pdf-tools', icon: '📄', label: 'PDF Tools', sub: '14 tools in one place', color: 'from-orange-500 to-red-600' },
+        { id: 'pdf-tools', icon: '📄', label: 'PDF Tools', sub: '16 tools in one place', color: 'from-orange-500 to-red-600' },
       ]
     },
   ]
