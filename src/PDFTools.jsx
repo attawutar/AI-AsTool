@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { PDFDocument, rgb, StandardFonts, degrees } from 'pdf-lib'
 import heic2any from 'heic2any'
 
