@@ -726,6 +726,187 @@ function RemoveBg({onBack}){
   )
 }
 
+// ─── 17. PDF Editor ──────────────────────────────────────────────────────────
+const EDIT_SCALE = 1.5
+function PDFEditor({onBack}){
+  const [file,setFile]=useState(null)
+  const [pdfjsDoc,setPdfjsDoc]=useState(null)
+  const [pageCount,setPageCount]=useState(0)
+  const [curPage,setCurPage]=useState(1)
+  const [tool,setTool]=useState('pen')
+  const [color,setColor]=useState('#ef4444')
+  const [sw,setSw]=useState(3)
+  const [busy,setBusy]=useState(false)
+  const [status,setStatus]=useState('')
+  const annotRef=useRef({})
+  const bgRef=useRef()
+  const fgRef=useRef()
+  const drawRef=useRef(false)
+  const lastRef=useRef(null)
+
+  const load=async([f])=>{
+    setBusy(true);setStatus('Loading…')
+    const ab=await readAB(f)
+    const lib=await getPDFJS()
+    const doc=await lib.getDocument({data:new Uint8Array(ab)}).promise
+    annotRef.current={}
+    setPdfjsDoc(doc);setPageCount(doc.numPages);setFile(f);setCurPage(1);setStatus('');setBusy(false)
+  }
+
+  useEffect(()=>{
+    if(!pdfjsDoc)return
+    ;(async()=>{
+      const page=await pdfjsDoc.getPage(curPage)
+      const vp=page.getViewport({scale:EDIT_SCALE})
+      const bg=bgRef.current,fg=fgRef.current
+      if(!bg||!fg)return
+      bg.width=fg.width=vp.width
+      bg.height=fg.height=vp.height
+      await page.render({canvasContext:bg.getContext('2d'),viewport:vp}).promise
+      const ctx=fg.getContext('2d')
+      ctx.clearRect(0,0,fg.width,fg.height)
+      const url=annotRef.current[curPage]
+      if(url)await new Promise(res=>{const img=new Image();img.onload=()=>{ctx.drawImage(img,0,0);res()};img.src=url})
+    })()
+  },[pdfjsDoc,curPage])
+
+  const saveCurAnnot=()=>{const fg=fgRef.current;if(fg)annotRef.current[curPage]=fg.toDataURL()}
+  const goPage=n=>{saveCurAnnot();setCurPage(n)}
+
+  const getPos=e=>{
+    const c=fgRef.current,r=c.getBoundingClientRect(),t=e.touches?.[0]??e
+    return{x:(t.clientX-r.left)*(c.width/r.width),y:(t.clientY-r.top)*(c.height/r.height)}
+  }
+
+  const onDown=e=>{
+    e.preventDefault()
+    if(tool==='text'){
+      const pos=getPos(e)
+      const txt=prompt('Enter text:')
+      if(!txt)return
+      const ctx=fgRef.current.getContext('2d')
+      ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1
+      ctx.font=`bold ${sw*6}px Arial`;ctx.fillStyle=color
+      ctx.fillText(txt,pos.x,pos.y)
+      return
+    }
+    drawRef.current=true;lastRef.current=getPos(e)
+  }
+
+  const onMove=e=>{
+    if(!drawRef.current)return;e.preventDefault()
+    const pos=getPos(e)
+    const ctx=fgRef.current.getContext('2d')
+    ctx.lineCap='round';ctx.lineJoin='round'
+    if(tool==='pen'){ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1;ctx.strokeStyle=color;ctx.lineWidth=sw}
+    else if(tool==='highlight'){ctx.globalCompositeOperation='source-over';ctx.globalAlpha=0.3;ctx.strokeStyle=color;ctx.lineWidth=sw*8;ctx.lineCap='square'}
+    else if(tool==='eraser'){ctx.globalCompositeOperation='destination-out';ctx.globalAlpha=1;ctx.lineWidth=sw*10}
+    ctx.beginPath();ctx.moveTo(lastRef.current.x,lastRef.current.y);ctx.lineTo(pos.x,pos.y);ctx.stroke()
+    ctx.globalCompositeOperation='source-over';ctx.globalAlpha=1
+    lastRef.current=pos
+  }
+
+  const onUp=()=>{drawRef.current=false}
+
+  const clearPage=()=>{
+    const fg=fgRef.current;fg.getContext('2d').clearRect(0,0,fg.width,fg.height)
+    delete annotRef.current[curPage]
+  }
+
+  const savePDF=async()=>{
+    if(!pdfjsDoc)return;saveCurAnnot()
+    setBusy(true);setStatus('Generating PDF…')
+    try{
+      const doc=await PDFDocument.create()
+      for(let i=1;i<=pageCount;i++){
+        setStatus(`Page ${i} / ${pageCount}…`)
+        const page=await pdfjsDoc.getPage(i)
+        const vp1=page.getViewport({scale:1})
+        const vp2=page.getViewport({scale:2})
+        const c=document.createElement('canvas');c.width=vp2.width;c.height=vp2.height
+        await page.render({canvasContext:c.getContext('2d'),viewport:vp2}).promise
+        const url=annotRef.current[i]
+        if(url)await new Promise(res=>{const img=new Image();img.onload=()=>{c.getContext('2d').drawImage(img,0,0,c.width,c.height);res()};img.src=url})
+        const jpgAB=await(await fetch(c.toDataURL('image/jpeg',0.92))).arrayBuffer()
+        const embImg=await doc.embedJpg(jpgAB)
+        const pdfPage=doc.addPage([vp1.width,vp1.height])
+        pdfPage.drawImage(embImg,{x:0,y:0,width:vp1.width,height:vp1.height})
+      }
+      dlPDF(await doc.save(),file.name.replace(/\.pdf$/i,'-edited.pdf'))
+      setStatus('✓ Downloaded!')
+    }catch(e){setStatus('Error: '+e.message)}
+    setBusy(false)
+  }
+
+  const COLORS=['#ef4444','#f97316','#eab308','#22c55e','#3b82f6','#a855f7','#000000','#ffffff']
+  const TOOL_LIST=[{id:'pen',icon:'✏️',label:'Pen'},{id:'highlight',icon:'🖊️',label:'Highlight'},{id:'eraser',icon:'⚪',label:'Eraser'},{id:'text',icon:'T',label:'Text'}]
+
+  return(
+    <div className="min-h-screen flex flex-col items-center py-6 px-4"><Bg/>
+      <div className="w-full max-w-2xl">
+        <Back onBack={onBack}/>
+        <h1 className="text-white font-black text-2xl mb-4">📝 PDF Editor</h1>
+        {!file?(
+          <><Drop accept=".pdf" icon="📄" label="Upload PDF to edit" onFiles={load}/><StatusMsg status={status}/>{busy&&<div className="text-center mt-3"><Spin/></div>}</>
+        ):(
+          <>
+            {/* Toolbar */}
+            <div className="flex flex-wrap items-center gap-2 mb-3 p-3 rounded-2xl border border-white/[0.06] bg-white/[0.04] backdrop-blur-xl">
+              <div className="flex gap-1">
+                {TOOL_LIST.map(t=>(
+                  <button key={t.id} onClick={()=>setTool(t.id)} title={t.label}
+                    className={`w-9 h-9 rounded-lg text-sm font-bold transition-all ${tool===t.id?'bg-gradient-to-r from-cyan-500 to-purple-500 text-white':'bg-white/[0.07] text-white/60 hover:bg-white/[0.14]'}`}>
+                    {t.icon}
+                  </button>
+                ))}
+              </div>
+              <div className="w-px h-6 bg-white/10"/>
+              <div className="flex gap-1.5 flex-wrap">
+                {COLORS.map(c=>(
+                  <button key={c} onClick={()=>setColor(c)}
+                    className={`w-6 h-6 rounded-full transition-all ${color===c?'ring-2 ring-white scale-110':''}`}
+                    style={{background:c,border:c==='#ffffff'?'1px solid rgba(255,255,255,0.3)':'none'}}/>
+                ))}
+              </div>
+              <div className="w-px h-6 bg-white/10"/>
+              <div className="flex items-center gap-1.5">
+                <span className="text-white/30 text-xs">Size</span>
+                <input type="range" min={1} max={12} value={sw} onChange={e=>setSw(+e.target.value)} className="w-20 accent-cyan-500"/>
+              </div>
+              <div className="flex-1"/>
+              <button onClick={clearPage} className="text-white/30 hover:text-red-400 text-xs transition-colors">Clear page</button>
+            </div>
+
+            {/* Page nav */}
+            {pageCount>1&&(
+              <div className="flex items-center justify-center gap-3 mb-3">
+                <button onClick={()=>curPage>1&&goPage(curPage-1)} disabled={curPage===1} className="text-white/40 hover:text-white disabled:opacity-20 text-xl px-2">‹</button>
+                <span className="text-white/50 text-sm">Page {curPage} / {pageCount}</span>
+                <button onClick={()=>curPage<pageCount&&goPage(curPage+1)} disabled={curPage===pageCount} className="text-white/40 hover:text-white disabled:opacity-20 text-xl px-2">›</button>
+              </div>
+            )}
+
+            {/* Canvas */}
+            <div className="relative rounded-xl overflow-hidden border border-white/10 mb-4 bg-white" style={{touchAction:'none'}}>
+              <canvas ref={bgRef} className="w-full block"/>
+              <canvas ref={fgRef} className="absolute inset-0 w-full h-full"
+                style={{cursor:tool==='eraser'?'cell':tool==='text'?'text':'crosshair'}}
+                onMouseDown={onDown} onMouseMove={onMove} onMouseUp={onUp} onMouseLeave={onUp}
+                onTouchStart={onDown} onTouchMove={onMove} onTouchEnd={onUp}/>
+            </div>
+
+            <StatusMsg status={status}/>
+            <div className="flex gap-2 mt-3">
+              <Btn v="secondary" onClick={()=>{setFile(null);setPdfjsDoc(null);annotRef.current={}}} className="flex-1" size="sm">← New File</Btn>
+              <Btn onClick={savePDF} disabled={busy} className="flex-1">{busy?<Spin/>:'💾 Save & Download'}</Btn>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ─── PDF Tools Hub ────────────────────────────────────────────────────────────
 const TOOLS = [
   { id:'merge',         icon:'📎', label:'Merge PDFs',       sub:'Combine multiple files',   comp:MergePDF },
@@ -744,6 +925,7 @@ const TOOLS = [
   { id:'scan',          icon:'📱', label:'Scan Document',    sub:'Camera to PDF',            comp:ScanDocument },
   { id:'heic-to-jpg',  icon:'🍎', label:'HEIC → JPG',       sub:'Convert iPhone photos',    comp:HeicToJpg },
   { id:'remove-bg',    icon:'✂️', label:'Remove Background', sub:'AI transparent PNG',       comp:RemoveBg },
+  { id:'pdf-editor',   icon:'📝', label:'PDF Editor',        sub:'Draw, highlight & annotate', comp:PDFEditor },
 ]
 
 export default function PDFToolsScreen({ onBack }) {
