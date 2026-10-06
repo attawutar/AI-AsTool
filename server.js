@@ -12,6 +12,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: '*', methods: ['GET', 'POST'] }
 });
+require('./questions')(io);
 
 // ─── In-memory room store ───────────────────────────────────────────────────
 const rooms = new Map();

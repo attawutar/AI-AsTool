@@ -1,4 +1,4 @@
-const CACHE = 'ai-ascend-v1'
+const CACHE = 'ai-ascend-v2'
 
 // On install: cache all pre-fetched assets
 self.addEventListener('install', e => {
@@ -35,6 +35,12 @@ self.addEventListener('fetch', e => {
 
   // Never intercept socket.io or /health
   if (url.pathname.startsWith('/socket.io') || url.pathname === '/health') return
+
+  // Fetch current HTML so installed clients see newly deployed features.
+  if (e.request.mode === 'navigate') {
+    e.respondWith(fetch(e.request).catch(() => caches.match('/index.html')))
+    return
+  }
 
   // External CDN — network first, cache fallback
   if (url.origin !== self.location.origin) {

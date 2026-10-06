@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { io } from 'socket.io-client'
 import PDFToolsScreen from './PDFTools'
+import LiveQuestionsScreen from './LiveQuestions'
 
 // ─── Socket singleton ─────────────────────────────────────────────────────────
 let _socket = null
@@ -163,6 +164,7 @@ function WelcomeScreen({ onSelect }) {
         { id: 'host',        icon: '🎯', label: 'Group Randomizer', sub: 'Host a session',     color: 'from-cyan-500 to-blue-600' },
         { id: 'participant', icon: '👥', label: 'Group Randomizer', sub: 'Join as participant', color: 'from-blue-500 to-indigo-600' },
         { id: 'poll',        icon: '🗳️', label: 'Live Poll',        sub: 'Real-time voting',    color: 'from-violet-500 to-purple-600' },
+        { id: 'qna',         icon: '💬', label: 'Live Q&A',         sub: 'Guest questions on screen', color: 'from-teal-500 to-cyan-600' },
         { id: 'scoreboard',  icon: '🏆', label: 'Team Scoreboard',  sub: 'Live leaderboard',    color: 'from-amber-500 to-orange-600' },
       ]
     },
@@ -1373,8 +1375,8 @@ function QRGeneratorScreen({ onBack }) {
 
 // ─── Root App ─────────────────────────────────────────────────────────────────
 export default function App() {
-  const [screen, setScreen] = useState('welcome')
-  const back = () => setScreen('welcome')
+  const [screen, setScreen] = useState(() => new URLSearchParams(window.location.search).has('qna') ? 'qna' : 'welcome')
+  const back = () => { window.history.replaceState({}, '', window.location.pathname); setScreen('welcome') }
   return (
     <div className="text-white">
       {screen==='welcome'      && <WelcomeScreen onSelect={setScreen} />}
@@ -1382,6 +1384,7 @@ export default function App() {
       {screen==='participant'  && <ParticipantJoinScreen onBack={back} />}
       {screen==='timer'        && <TimerScreen onBack={back} />}
       {screen==='poll'         && <PollScreen onBack={back} />}
+      {screen==='qna'          && <LiveQuestionsScreen socket={getSocket()} onBack={back} />}
       {screen==='scoreboard'   && <ScoreboardScreen onBack={back} />}
       {screen==='spin-wheel'   && <SpinWheelScreen onBack={back} />}
       {screen==='icebreaker'   && <IcebreakerScreen onBack={back} />}

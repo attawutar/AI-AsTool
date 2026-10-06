@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "AI-powered group randomizer with real-time Socket.io",
   "scripts": {
+    "test": "node --test tests/*.test.js",
     "dev:server": "node server.js",
     "dev:client": "vite",
     "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",

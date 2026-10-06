@@ -3,6 +3,25 @@
 Real-time group randomizer built with **React + Tailwind + Socket.io**.  
 Participants join from their phones — the host sees them instantly.
 
+## Live Q&A
+
+Choose **Live Q&A** in the **Real-time** section. The speaker creates a session,
+then shares its guest link, QR code, or session code. Guests can submit a question
+with an optional name. All connected screens update immediately. Questions remain
+on the board after guests leave; only the speaker can delete them.
+
+Use **Projector view** for larger text or **Open display in new tab** for a separate
+screen. Speaker access is saved in the browser that created the board. Use
+**Reopen my board** to resume after navigating away or refreshing. The guest link
+does not contain the speaker credential.
+
+Boards are saved to `data/questions.json` by default and reloaded on server startup.
+For Railway, mount a persistent volume at `/data` and set
+`QNA_DATA_FILE=/data/questions.json` so boards survive deployments. Run a single
+server replica with this file storage. Build with `npm run build` and run the
+server with `NODE_ENV=production`. Run `npm test` to verify real-time delivery,
+speaker permissions, reconnect recovery, and saved data.
+
 ---
 
 ## 🚀 Quick Start (Local)
