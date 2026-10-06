@@ -1,4 +1,4 @@
-# 🤖 Hello AI — Group Randomizer
+# 🤖 AI AsTool - Web Event Helper
 
 Real-time group randomizer built with **React + Tailwind + Socket.io**.  
 Participants join from their phones — the host sees them instantly.
